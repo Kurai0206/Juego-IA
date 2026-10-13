@@ -5,9 +5,11 @@ import os
 
 from PIL import Image, ImageTk
 
+# Rutas para que las imágenes se encuentren desde cualquier carpeta
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CARPETA_FICHAS = os.path.join(BASE_DIR, "fichas")
 
+# Pillow cambió la forma de llamar al filtro en la versión 10
 try:
     RESAMPLE = Image.Resampling.LANCZOS
 except AttributeError:
@@ -48,6 +50,7 @@ class JuegoDomino:
         self.reiniciar()
 
     def reiniciar(self):
+        # Las 28 fichas del dominó estándar
         fichas = [Ficha(i, j) for i in range(7) for j in range(i, 7)]
         random.shuffle(fichas)
 
@@ -61,6 +64,7 @@ class JuegoDomino:
         self.turno_humano = True
 
     def jugadas_validas(self, mano):
+        # Al principio todo se juega hacia la derecha
         if not self.tablero:
             return [(ficha, 'der') for ficha in mano]
 
@@ -82,6 +86,7 @@ class JuegoDomino:
         return False
 
     def jugar_ficha(self, ficha, lado, jugador_es_humano):
+        # Si no encaja, no se juega
         if self.tablero and not self.puede_jugar(ficha, lado):
             return False
 
@@ -97,6 +102,7 @@ class JuegoDomino:
             return True
 
         if lado == 'izq':
+            # Dejamos el valor que conecta pegado a la mesa (en v2)
             if ficha.v2 == self.extremo_izq:
                 nueva = Ficha(ficha.v1, ficha.v2)
             else:
@@ -104,6 +110,7 @@ class JuegoDomino:
             self.tablero.insert(0, nueva)
             self.extremo_izq = nueva.v1
         else:
+            # Mismo criterio pero al revés para el lado derecho
             if ficha.v1 == self.extremo_der:
                 nueva = Ficha(ficha.v1, ficha.v2)
             else:
@@ -128,6 +135,7 @@ class JuegoDomino:
 
 
 class BotonSuave(tk.Button):
+    # Botón con un hover sencillo
     def __init__(self, master, **kwargs):
         kwargs.setdefault("relief", "flat")
         kwargs.setdefault("bd", 0)
@@ -170,6 +178,7 @@ class InterfazDomino(tk.Tk):
         self.dificultad = tk.StringVar(value="Fácil")
         self.nombre_jugador = tk.StringVar(value="")
 
+        # Referencias para que las imágenes no se borren de memoria
         self.imagenes_tablero = []
         self.imagenes_humano = []
         self.idx_seleccionado = None
@@ -179,6 +188,7 @@ class InterfazDomino(tk.Tk):
         self.pantalla_inicio()
 
     def _cancelar_timers(self):
+        # Cancela el turno pendiente de la IA si salimos o reiniciamos
         if self._after_id is not None:
             try:
                 self.after_cancel(self._after_id)
@@ -258,6 +268,7 @@ class InterfazDomino(tk.Tk):
         self.pantalla_juego()
 
     def reiniciar_partida(self):
+        # Pide confirmación antes de tirar la partida actual
         if not messagebox.askyesno("Reiniciar partida",
                                    "¿Quieres comenzar una nueva partida?"):
             return
@@ -267,15 +278,17 @@ class InterfazDomino(tk.Tk):
         self.pantalla_juego()
 
     def volver_al_menu(self):
-        if messagebox.askyesno("Regresar al menú",
-                               "¿Quieres regresar al menú principal? Se perderá el progreso."):
-            self._cancelar_timers()
-            self.pantalla_inicio()
+        if not messagebox.askyesno("Regresar al menú",
+                                   "¿Quieres regresar al menú principal? Se perderá el progreso."):
+            return
+        self._cancelar_timers()
+        self.pantalla_inicio()
 
     def pantalla_juego(self):
         self._cancelar_timers()
         self.limpiar_ventana()
 
+        # Título: nombre del jugador vs IA
         header = tk.Frame(self, bg=COLOR_FONDO)
         header.pack(side=tk.TOP, fill=tk.X, padx=24, pady=(14, 4))
 
@@ -300,12 +313,14 @@ class InterfazDomino(tk.Tk):
                  font=("Segoe UI", 11, "bold"),
                  bg=COLOR_FONDO, fg=COLOR_SUAVE).pack(side=tk.LEFT)
 
+        # Fichas ocultas de la IA
         self.frame_agente = tk.Frame(self, bg=COLOR_FONDO)
         self.frame_agente.pack(side=tk.TOP, fill=tk.X, padx=24)
         self.canvas_agente = tk.Canvas(self.frame_agente, bg=COLOR_FONDO,
                                        height=80, highlightthickness=0)
         self.canvas_agente.pack(fill=tk.X)
 
+        # Mesa
         mesa_card = tk.Frame(self, bg=COLOR_PANEL,
                              highlightbackground="#E4DDD1", highlightthickness=1)
         mesa_card.pack(side=tk.TOP, fill=tk.BOTH, expand=True,
@@ -325,6 +340,7 @@ class InterfazDomino(tk.Tk):
         self.canvas_tablero.pack(side=tk.TOP, fill=tk.BOTH, expand=True,
                                  padx=12, pady=(0, 12))
 
+        # Etiqueta con el turno actual
         info = tk.Frame(self, bg=COLOR_FONDO)
         info.pack(side=tk.BOTTOM, fill=tk.X, padx=24)
 
@@ -334,6 +350,7 @@ class InterfazDomino(tk.Tk):
                                  bg=COLOR_FONDO, fg=COLOR_TEXTO)
         self.lbl_info.pack(side=tk.TOP, anchor=tk.W, pady=(4, 4))
 
+        # Botones de acción
         controles = tk.Frame(self, bg=COLOR_FONDO)
         controles.pack(side=tk.BOTTOM, fill=tk.X, padx=24, pady=(0, 12))
 
@@ -354,6 +371,7 @@ class InterfazDomino(tk.Tk):
                    bg=COLOR_NEUTRO,
                    command=self.volver_al_menu).pack(side=tk.RIGHT)
 
+        # Mano del jugador
         mano = tk.Frame(self, bg=COLOR_FONDO)
         mano.pack(side=tk.BOTTOM, fill=tk.X, padx=24, pady=(0, 16))
 
@@ -369,14 +387,14 @@ class InterfazDomino(tk.Tk):
 
         self.actualizar_ui()
 
+        # Si el jugador arranca sin jugadas, roba automáticamente
         if not self.juego.hay_jugadas(self.juego.mano_humano) and self.juego.pozo:
             self._after_id = self.after(400, self.robar_o_pasar_humano)
 
     def _texto_info_turno(self):
-        nombre = self.nombre_jugador.get()
         pozo = len(self.juego.pozo)
         if self.juego.turno_humano:
-            return f"Turno de {nombre} · Fichas en el pozo: {pozo}"
+            return f"Turno de {self.nombre_jugador.get()} · Fichas en el pozo: {pozo}"
         return f"Turno de {NOMBRE_IA} · Fichas en el pozo: {pozo}"
 
     def seleccionar_ficha(self, idx):
@@ -384,6 +402,7 @@ class InterfazDomino(tk.Tk):
         self.renderizar_humano()
 
     def renderizar_agente(self):
+        # Solo se dibujan rectángulos: no se ve la mano de la IA
         self.canvas_agente.delete("all")
         num_fichas = len(self.juego.mano_agente)
         if num_fichas == 0:
@@ -407,6 +426,7 @@ class InterfazDomino(tk.Tk):
             )
 
     def _buscar_imagen(self, v_min, v_max):
+        # Busca la imagen con el nombre menor_mayor en distintas extensiones
         extensiones = [".png", ".jpg", ".jpeg", ".PNG", ".JPG"]
         for ext in extensiones:
             ruta = os.path.join(CARPETA_FICHAS, f"{v_min}_{v_max}{ext}")
@@ -436,12 +456,14 @@ class InterfazDomino(tk.Tk):
                 img = Image.open(ruta_imagen).convert("RGBA")
                 img = img.resize((ANCHO_FICHA_MANO, ALTO_FICHA_MANO), RESAMPLE)
 
+                # Si los valores están invertidos, se rota la imagen 180°
                 if f.v1 > f.v2:
                     img = img.rotate(180, expand=True)
 
                 img_tk = ImageTk.PhotoImage(img)
                 self.imagenes_humano.append(img_tk)
 
+                # Recuadro verde cuando está seleccionada
                 if self.idx_seleccionado == i:
                     self.canvas_humano.create_rectangle(
                         x_actual - 5, margen_y - 5,
@@ -460,6 +482,7 @@ class InterfazDomino(tk.Tk):
                 )
 
             except Exception:
+                # Si falta la imagen, se dibuja un rectángulo con el texto [v1|v2]
                 rect = self.canvas_humano.create_rectangle(
                     x_actual, margen_y,
                     x_actual + ANCHO_FICHA_MANO,
@@ -509,9 +532,11 @@ class InterfazDomino(tk.Tk):
                 img = Image.open(ruta_imagen).convert("RGBA")
 
                 if f.es_doble:
+                    # Los dobles van de pie
                     img = img.resize((ancho_corto, ancho_largo), RESAMPLE)
                     ancho_actual = ancho_corto
                 else:
+                    # Las normales van acostadas
                     img = img.resize((ancho_corto, ancho_largo), RESAMPLE)
 
                     if f.v1 < f.v2:
@@ -586,6 +611,7 @@ class InterfazDomino(tk.Tk):
         self.idx_seleccionado = None
         self.actualizar_ui()
 
+        # Le pasamos el turno a la IA con un pequeño retraso
         if self.juego.mano_humano and self.juego.mano_agente:
             self.lbl_info.config(text=f"{NOMBRE_IA} está pensando…")
             self.update_idletasks()
@@ -609,11 +635,13 @@ class InterfazDomino(tk.Tk):
                                     "Ahora tienes jugadas disponibles.")
                 return
 
+        # Si no hay pozo ni jugadas, pasa el turno
         self.juego.turno_humano = False
         self.lbl_info.config(text=f"{NOMBRE_IA} está pensando…")
         self._after_id = self.after(1100, self.turno_agente)
 
     def turno_agente(self):
+        # La IA roba mientras no tenga jugadas y queden fichas en el pozo
         validas = self.juego.jugadas_validas(self.juego.mano_agente)
         while not validas and self.juego.pozo:
             self.juego.robar(jugador_es_humano=False)
@@ -621,6 +649,7 @@ class InterfazDomino(tk.Tk):
             self.update_idletasks()
 
         if not validas:
+            # Sin jugadas ni pozo: turno del humano
             self.juego.turno_humano = True
             self.actualizar_ui()
             if not self.juego.hay_jugadas(self.juego.mano_humano) and not self.juego.pozo:
@@ -630,10 +659,16 @@ class InterfazDomino(tk.Tk):
         dif = self.dificultad.get()
 
         if dif == "Fácil":
+            # Nivel fácil: elige al azar
             ficha_elegida, lado = random.choice(validas)
+
         elif dif == "Medio":
+            # Nivel medio: juega la ficha de mayor peso
             ficha_elegida, lado = max(validas, key=lambda x: x[0].peso)
+
         else:
+            # Nivel difícil: cuenta cuántas fichas de cada número tiene
+            # y elige exponer el número que menos domina
             conteos = {i: 0 for i in range(7)}
             for f in self.juego.mano_agente:
                 conteos[f.v1] += 1
@@ -664,6 +699,7 @@ class InterfazDomino(tk.Tk):
         self.actualizar_ui()
 
     def verificar_fin_juego(self):
+        # Gana quien se quede sin fichas
         if not self.juego.mano_humano:
             self.finalizar_partida("Humano")
             return True
@@ -684,6 +720,7 @@ class InterfazDomino(tk.Tk):
         card.place(relx=0.5, rely=0.5, anchor=tk.CENTER, width=480, height=340)
 
         if tranque:
+            # Nadie puede jugar: se cuentan puntos
             p = sum(f.peso for f in self.juego.mano_humano)
             pa = sum(f.peso for f in self.juego.mano_agente)
             titulo = "Empate por tranque"
