@@ -18,9 +18,11 @@ COLOR_PANEL = "#FFFDF9"
 COLOR_TEXTO = "#3A3A3A"
 COLOR_SUAVE = "#8A8578"
 COLOR_ACENTO = "#7C9A82"
-COLOR_ACENTO_HOVER = "#6B8871"
 COLOR_ALERTA = "#C97B5A"
 COLOR_INFO = "#7A8FA6"
+COLOR_NEUTRO = "#B9B2A4"
+
+NOMBRE_IA = "Play AI"
 
 
 class Ficha:
@@ -167,17 +169,21 @@ class InterfazDomino(tk.Tk):
         self.imagenes_tablero = []
         self.imagenes_humano = []
         self.idx_seleccionado = None
+        self.juego = None
+        self._after_id = None
 
         self.pantalla_inicio()
 
-    def _card(self, parent, **pack_kwargs):
-        card = tk.Frame(parent, bg=COLOR_PANEL,
-                        highlightbackground="#E4DDD1", highlightthickness=1)
-        if pack_kwargs:
-            card.pack(**pack_kwargs)
-        return card
+    def _cancelar_timers(self):
+        if self._after_id is not None:
+            try:
+                self.after_cancel(self._after_id)
+            except Exception:
+                pass
+            self._after_id = None
 
     def pantalla_inicio(self):
+        self._cancelar_timers()
         self.limpiar_ventana()
 
         contenedor = tk.Frame(self, bg=COLOR_FONDO)
@@ -211,7 +217,7 @@ class InterfazDomino(tk.Tk):
         entrada.focus_set()
         self.entry_nombre = entrada
 
-        tk.Label(card, text="Estrategia de la IA",
+        tk.Label(card, text="Estrategia de Play AI",
                  font=("Segoe UI", 11),
                  bg=COLOR_PANEL, fg=COLOR_SUAVE).pack(pady=(0, 10))
 
@@ -247,7 +253,17 @@ class InterfazDomino(tk.Tk):
         self.idx_seleccionado = None
         self.pantalla_juego()
 
+    def reiniciar_partida(self):
+        if not messagebox.askyesno("Reiniciar partida",
+                                   "¿Quieres comenzar una nueva partida?"):
+            return
+        self._cancelar_timers()
+        self.juego = JuegoDomino()
+        self.idx_seleccionado = None
+        self.pantalla_juego()
+
     def pantalla_juego(self):
+        self._cancelar_timers()
         self.limpiar_ventana()
 
         header = tk.Frame(self, bg=COLOR_FONDO)
@@ -258,7 +274,7 @@ class InterfazDomino(tk.Tk):
                  bg=COLOR_FONDO, fg=COLOR_TEXTO).pack(side=tk.LEFT)
 
         self.lbl_agente = tk.Label(header,
-                                   text=f"Gem · {len(self.juego.mano_agente)} fichas",
+                                   text=f"{NOMBRE_IA} · {len(self.juego.mano_agente)} fichas",
                                    font=("Segoe UI", 11),
                                    bg=COLOR_FONDO, fg=COLOR_SUAVE)
         self.lbl_agente.pack(side=tk.RIGHT)
@@ -319,14 +335,23 @@ class InterfazDomino(tk.Tk):
                    bg=COLOR_ALERTA,
                    command=self.robar_o_pasar_humano).pack(side=tk.LEFT)
 
-        BotonSuave(controles, text="Volver al menú",
-                   bg="#B9B2A4",
-                   command=self.pantalla_inicio).pack(side=tk.RIGHT)
+        BotonSuave(controles, text="Reiniciar",
+                   bg=COLOR_ACENTO,
+                   command=self.reiniciar_partida).pack(side=tk.RIGHT, padx=(8, 0))
+        BotonSuave(controles, text="Regresar",
+                   bg=COLOR_NEUTRO,
+                   command=self.volver_al_menu).pack(side=tk.RIGHT)
 
         self.actualizar_ui()
 
         if not self.juego.hay_jugadas(self.juego.mano_humano) and self.juego.pozo:
-            self.after(400, self.robar_o_pasar_humano)
+            self._after_id = self.after(400, self.robar_o_pasar_humano)
+
+    def volver_al_menu(self):
+        if messagebox.askyesno("Regresar al menú",
+                               "¿Quieres regresar al menú principal? Se perderá el progreso."):
+            self._cancelar_timers()
+            self.pantalla_inicio()
 
     def seleccionar_ficha(self, idx):
         self.idx_seleccionado = idx
@@ -478,7 +503,7 @@ class InterfazDomino(tk.Tk):
         self.canvas_tablero.xview_moveto(1.0)
 
     def actualizar_ui(self):
-        self.lbl_agente.config(text=f"Gem · {len(self.juego.mano_agente)} fichas")
+        self.lbl_agente.config(text=f"{NOMBRE_IA} · {len(self.juego.mano_agente)} fichas")
         self.lbl_info.config(
             text=f"{self.nombre_jugador.get()} · turno · pozo {len(self.juego.pozo)}"
         )
@@ -529,9 +554,9 @@ class InterfazDomino(tk.Tk):
         self.actualizar_ui()
 
         if self.juego.mano_humano and self.juego.mano_agente:
-            self.lbl_info.config(text="Gem está pensando…")
+            self.lbl_info.config(text=f"{NOMBRE_IA} está pensando…")
             self.update_idletasks()
-            self.after(1100, self.turno_agente)
+            self._after_id = self.after(1100, self.turno_agente)
 
     def robar_o_pasar_humano(self):
         if self.juego.hay_jugadas(self.juego.mano_humano):
@@ -552,8 +577,8 @@ class InterfazDomino(tk.Tk):
                 return
 
         self.juego.turno_humano = False
-        self.lbl_info.config(text="Gem está pensando…")
-        self.after(1100, self.turno_agente)
+        self.lbl_info.config(text=f"{NOMBRE_IA} está pensando…")
+        self._after_id = self.after(1100, self.turno_agente)
 
     def turno_agente(self):
         validas = self.juego.jugadas_validas(self.juego.mano_agente)
@@ -615,6 +640,7 @@ class InterfazDomino(tk.Tk):
         return False
 
     def finalizar_partida(self, ganador=None, tranque=False):
+        self._cancelar_timers()
         self.limpiar_ventana()
 
         contenedor = tk.Frame(self, bg=COLOR_FONDO)
@@ -622,21 +648,21 @@ class InterfazDomino(tk.Tk):
 
         card = tk.Frame(contenedor, bg=COLOR_PANEL,
                         highlightbackground="#E4DDD1", highlightthickness=1)
-        card.place(relx=0.5, rely=0.5, anchor=tk.CENTER, width=460, height=300)
+        card.place(relx=0.5, rely=0.5, anchor=tk.CENTER, width=460, height=320)
 
         if tranque:
             p = sum(f.peso for f in self.juego.mano_humano)
             pa = sum(f.peso for f in self.juego.mano_agente)
             titulo = "Empate por tranque"
-            subtitulo = f"{self.nombre_jugador.get()} · {p} pts        Gem · {pa} pts"
+            subtitulo = f"{self.nombre_jugador.get()} · {p} pts        {NOMBRE_IA} · {pa} pts"
             color = COLOR_ALERTA
         else:
             if ganador == "Humano":
                 titulo = f"¡Ganaste, {self.nombre_jugador.get()}!"
-                subtitulo = "Has vencido a la inteligencia artificial."
+                subtitulo = f"Has vencido a {NOMBRE_IA}."
                 color = COLOR_ACENTO
             else:
-                titulo = "Victoria de Gem"
+                titulo = f"Victoria de {NOMBRE_IA}"
                 subtitulo = "La IA ha ganado esta partida."
                 color = COLOR_ALERTA
 
@@ -645,9 +671,15 @@ class InterfazDomino(tk.Tk):
         tk.Label(card, text=subtitulo, font=("Segoe UI", 12),
                  bg=COLOR_PANEL, fg=COLOR_SUAVE).pack(pady=(0, 30))
 
-        BotonSuave(card, text="Volver al menú",
+        botones = tk.Frame(card, bg=COLOR_PANEL)
+        botones.pack()
+
+        BotonSuave(botones, text="Jugar otra vez",
                    bg=COLOR_ACENTO,
-                   command=self.pantalla_inicio).pack()
+                   command=self.reiniciar_partida).pack(side=tk.LEFT, padx=(0, 8))
+        BotonSuave(botones, text="Volver al menú",
+                   bg=COLOR_NEUTRO,
+                   command=self.pantalla_inicio).pack(side=tk.LEFT)
 
     def limpiar_ventana(self):
         self.unbind("<Return>")
