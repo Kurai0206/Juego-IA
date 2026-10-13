@@ -24,6 +24,10 @@ COLOR_NEUTRO = "#B9B2A4"
 
 NOMBRE_IA = "Play AI"
 
+ALTO_FICHA_MANO = 140
+ANCHO_FICHA_MANO = 70
+ESPACIADO_MANO = 12
+
 
 class Ficha:
     def __init__(self, v1, v2):
@@ -159,9 +163,9 @@ class InterfazDomino(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Domin AI")
-        self.geometry("1100x850")
+        self.geometry("1150x900")
         self.configure(bg=COLOR_FONDO)
-        self.minsize(900, 700)
+        self.minsize(1000, 780)
 
         self.dificultad = tk.StringVar(value="Fácil")
         self.nombre_jugador = tk.StringVar(value="")
@@ -217,7 +221,7 @@ class InterfazDomino(tk.Tk):
         entrada.focus_set()
         self.entry_nombre = entrada
 
-        tk.Label(card, text="Estrategia de Play AI",
+        tk.Label(card, text=f"Estrategia de {NOMBRE_IA}",
                  font=("Segoe UI", 11),
                  bg=COLOR_PANEL, fg=COLOR_SUAVE).pack(pady=(0, 10))
 
@@ -229,11 +233,11 @@ class InterfazDomino(tk.Tk):
             "bd": 0, "highlightthickness": 0,
             "cursor": "hand2",
         }
-        tk.Radiobutton(card, text="Fácil  ·  aleatoria", variable=self.dificultad,
+        tk.Radiobutton(card, text="Fácil  ·  Aleatoria", variable=self.dificultad,
                        value="Fácil", **estilo_rb).pack(pady=2)
-        tk.Radiobutton(card, text="Media  ·  voraz", variable=self.dificultad,
+        tk.Radiobutton(card, text="Media  ·  Voraz", variable=self.dificultad,
                        value="Medio", **estilo_rb).pack(pady=2)
-        tk.Radiobutton(card, text="Difícil  ·  heurística", variable=self.dificultad,
+        tk.Radiobutton(card, text="Difícil  ·  Heurística", variable=self.dificultad,
                        value="Difícil", **estilo_rb).pack(pady=2)
 
         BotonSuave(card, text="Comenzar partida",
@@ -262,33 +266,50 @@ class InterfazDomino(tk.Tk):
         self.idx_seleccionado = None
         self.pantalla_juego()
 
+    def volver_al_menu(self):
+        if messagebox.askyesno("Regresar al menú",
+                               "¿Quieres regresar al menú principal? Se perderá el progreso."):
+            self._cancelar_timers()
+            self.pantalla_inicio()
+
     def pantalla_juego(self):
         self._cancelar_timers()
         self.limpiar_ventana()
 
         header = tk.Frame(self, bg=COLOR_FONDO)
-        header.pack(side=tk.TOP, fill=tk.X, padx=24, pady=(16, 8))
+        header.pack(side=tk.TOP, fill=tk.X, padx=24, pady=(14, 4))
 
-        tk.Label(header, text="Domin AI",
-                 font=("Segoe UI", 16, "bold"),
-                 bg=COLOR_FONDO, fg=COLOR_TEXTO).pack(side=tk.LEFT)
+        self.lbl_titulo_central = tk.Label(
+            header,
+            text=f"{self.nombre_jugador.get()}   vs   {NOMBRE_IA}",
+            font=("Segoe UI", 18, "bold"),
+            bg=COLOR_FONDO, fg=COLOR_TEXTO
+        )
+        self.lbl_titulo_central.pack()
 
-        self.lbl_agente = tk.Label(header,
-                                   text=f"{NOMBRE_IA} · {len(self.juego.mano_agente)} fichas",
+        subheader = tk.Frame(self, bg=COLOR_FONDO)
+        subheader.pack(side=tk.TOP, fill=tk.X, padx=24, pady=(0, 4))
+
+        self.lbl_agente = tk.Label(subheader,
+                                   text=f"{NOMBRE_IA} · {len(self.juego.mano_agente)} Fichas",
                                    font=("Segoe UI", 11),
                                    bg=COLOR_FONDO, fg=COLOR_SUAVE)
         self.lbl_agente.pack(side=tk.RIGHT)
 
+        tk.Label(subheader, text="Domin AI",
+                 font=("Segoe UI", 11, "bold"),
+                 bg=COLOR_FONDO, fg=COLOR_SUAVE).pack(side=tk.LEFT)
+
         self.frame_agente = tk.Frame(self, bg=COLOR_FONDO)
         self.frame_agente.pack(side=tk.TOP, fill=tk.X, padx=24)
         self.canvas_agente = tk.Canvas(self.frame_agente, bg=COLOR_FONDO,
-                                       height=90, highlightthickness=0)
+                                       height=80, highlightthickness=0)
         self.canvas_agente.pack(fill=tk.X)
 
         mesa_card = tk.Frame(self, bg=COLOR_PANEL,
                              highlightbackground="#E4DDD1", highlightthickness=1)
         mesa_card.pack(side=tk.TOP, fill=tk.BOTH, expand=True,
-                       padx=24, pady=(8, 12))
+                       padx=24, pady=(8, 8))
 
         self.lbl_extremos = tk.Label(mesa_card,
                                      text="La mesa está vacía. Juega tu primera ficha.",
@@ -297,33 +318,24 @@ class InterfazDomino(tk.Tk):
         self.lbl_extremos.pack(side=tk.TOP, pady=(12, 4))
 
         self.canvas_tablero = tk.Canvas(mesa_card, bg=COLOR_PANEL,
-                                        height=200, highlightthickness=0)
+                                        height=170, highlightthickness=0)
         self.scroll_tablero = tk.Scrollbar(mesa_card, orient=tk.HORIZONTAL,
                                            command=self.canvas_tablero.xview)
         self.canvas_tablero.config(xscrollcommand=self.scroll_tablero.set)
         self.canvas_tablero.pack(side=tk.TOP, fill=tk.BOTH, expand=True,
                                  padx=12, pady=(0, 12))
 
-        pie = tk.Frame(self, bg=COLOR_FONDO)
-        pie.pack(side=tk.BOTTOM, fill=tk.X, padx=24, pady=(0, 16))
+        info = tk.Frame(self, bg=COLOR_FONDO)
+        info.pack(side=tk.BOTTOM, fill=tk.X, padx=24)
 
-        self.lbl_info = tk.Label(pie,
-                                 text=f"{self.nombre_jugador.get()} · turno · pozo {len(self.juego.pozo)}",
+        self.lbl_info = tk.Label(info,
+                                 text=self._texto_info_turno(),
                                  font=("Segoe UI", 11, "bold"),
                                  bg=COLOR_FONDO, fg=COLOR_TEXTO)
-        self.lbl_info.pack(side=tk.TOP, anchor=tk.W, pady=(0, 8))
+        self.lbl_info.pack(side=tk.TOP, anchor=tk.W, pady=(4, 4))
 
-        self.scroll_humano = tk.Scrollbar(pie, orient=tk.HORIZONTAL)
-        self.scroll_humano.pack(side=tk.BOTTOM, fill=tk.X)
-
-        self.canvas_humano = tk.Canvas(pie, bg=COLOR_FONDO,
-                                       height=170, highlightthickness=0)
-        self.canvas_humano.config(xscrollcommand=self.scroll_humano.set)
-        self.scroll_humano.config(command=self.canvas_humano.xview)
-        self.canvas_humano.pack(side=tk.BOTTOM, fill=tk.X)
-
-        controles = tk.Frame(pie, bg=COLOR_FONDO)
-        controles.pack(side=tk.BOTTOM, fill=tk.X, pady=(8, 6))
+        controles = tk.Frame(self, bg=COLOR_FONDO)
+        controles.pack(side=tk.BOTTOM, fill=tk.X, padx=24, pady=(0, 12))
 
         BotonSuave(controles, text="Izquierda",
                    bg=COLOR_INFO,
@@ -331,7 +343,7 @@ class InterfazDomino(tk.Tk):
         BotonSuave(controles, text="Derecha",
                    bg=COLOR_INFO,
                    command=lambda: self.accion_humano('der')).pack(side=tk.LEFT, padx=(0, 8))
-        BotonSuave(controles, text="Robar / Pasar",
+        BotonSuave(controles, text="Robar o pasar",
                    bg=COLOR_ALERTA,
                    command=self.robar_o_pasar_humano).pack(side=tk.LEFT)
 
@@ -342,16 +354,30 @@ class InterfazDomino(tk.Tk):
                    bg=COLOR_NEUTRO,
                    command=self.volver_al_menu).pack(side=tk.RIGHT)
 
+        mano = tk.Frame(self, bg=COLOR_FONDO)
+        mano.pack(side=tk.BOTTOM, fill=tk.X, padx=24, pady=(0, 16))
+
+        self.scroll_humano = tk.Scrollbar(mano, orient=tk.HORIZONTAL)
+        self.scroll_humano.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.canvas_humano = tk.Canvas(mano, bg=COLOR_FONDO,
+                                       height=ALTO_FICHA_MANO + 20,
+                                       highlightthickness=0)
+        self.canvas_humano.config(xscrollcommand=self.scroll_humano.set)
+        self.scroll_humano.config(command=self.canvas_humano.xview)
+        self.canvas_humano.pack(side=tk.BOTTOM, fill=tk.X)
+
         self.actualizar_ui()
 
         if not self.juego.hay_jugadas(self.juego.mano_humano) and self.juego.pozo:
             self._after_id = self.after(400, self.robar_o_pasar_humano)
 
-    def volver_al_menu(self):
-        if messagebox.askyesno("Regresar al menú",
-                               "¿Quieres regresar al menú principal? Se perderá el progreso."):
-            self._cancelar_timers()
-            self.pantalla_inicio()
+    def _texto_info_turno(self):
+        nombre = self.nombre_jugador.get()
+        pozo = len(self.juego.pozo)
+        if self.juego.turno_humano:
+            return f"Turno de {nombre} · Fichas en el pozo: {pozo}"
+        return f"Turno de {NOMBRE_IA} · Fichas en el pozo: {pozo}"
 
     def seleccionar_ficha(self, idx):
         self.idx_seleccionado = idx
@@ -376,7 +402,7 @@ class InterfazDomino(tk.Tk):
         for i in range(num_fichas):
             x = x_inicio + (i * (ancho_ficha + espaciado))
             self.canvas_agente.create_rectangle(
-                x, 8, x + ancho_ficha, 8 + alto_ficha,
+                x, 4, x + ancho_ficha, 4 + alto_ficha,
                 fill="#FFFFFF", outline="#E4DDD1", width=1
             )
 
@@ -395,10 +421,9 @@ class InterfazDomino(tk.Tk):
         if not self.juego.mano_humano:
             return
 
-        ancho_ficha = 66
-        alto_ficha = 132
-        espaciado = 14
-        x_actual = 16
+        margen_x = 16
+        margen_y = 10
+        x_actual = margen_x
 
         for i, f in enumerate(self.juego.mano_humano):
             v_min, v_max = min(f.v1, f.v2), max(f.v1, f.v2)
@@ -409,7 +434,7 @@ class InterfazDomino(tk.Tk):
                     raise FileNotFoundError("Imagen no encontrada")
 
                 img = Image.open(ruta_imagen).convert("RGBA")
-                img = img.resize((ancho_ficha, alto_ficha), RESAMPLE)
+                img = img.resize((ANCHO_FICHA_MANO, ALTO_FICHA_MANO), RESAMPLE)
 
                 if f.v1 > f.v2:
                     img = img.rotate(180, expand=True)
@@ -419,13 +444,16 @@ class InterfazDomino(tk.Tk):
 
                 if self.idx_seleccionado == i:
                     self.canvas_humano.create_rectangle(
-                        x_actual - 5, 11 - 5,
-                        x_actual + ancho_ficha + 5, 11 + alto_ficha + 5,
+                        x_actual - 5, margen_y - 5,
+                        x_actual + ANCHO_FICHA_MANO + 5,
+                        margen_y + ALTO_FICHA_MANO + 5,
                         outline=COLOR_ACENTO, width=3
                     )
 
-                item = self.canvas_humano.create_image(x_actual, 11,
-                                                       image=img_tk, anchor=tk.NW)
+                item = self.canvas_humano.create_image(
+                    x_actual, margen_y,
+                    image=img_tk, anchor=tk.NW
+                )
                 self.canvas_humano.tag_bind(
                     item, '<Button-1>',
                     lambda _, idx=i: self.seleccionar_ficha(idx)
@@ -433,22 +461,28 @@ class InterfazDomino(tk.Tk):
 
             except Exception:
                 rect = self.canvas_humano.create_rectangle(
-                    x_actual, 11,
-                    x_actual + ancho_ficha, 11 + alto_ficha,
+                    x_actual, margen_y,
+                    x_actual + ANCHO_FICHA_MANO,
+                    margen_y + ALTO_FICHA_MANO,
                     fill="#FFFFFF", outline=COLOR_ALERTA
                 )
                 self.canvas_humano.create_text(
-                    x_actual + (ancho_ficha / 2), 11 + (alto_ficha / 2),
-                    text=str(f), font=("Segoe UI", 12, "bold"), fill=COLOR_TEXTO
+                    x_actual + (ANCHO_FICHA_MANO / 2),
+                    margen_y + (ALTO_FICHA_MANO / 2),
+                    text=str(f), font=("Segoe UI", 12, "bold"),
+                    fill=COLOR_TEXTO
                 )
                 self.canvas_humano.tag_bind(
                     rect, '<Button-1>',
                     lambda _, idx=i: self.seleccionar_ficha(idx)
                 )
 
-            x_actual += ancho_ficha + espaciado
+            x_actual += ANCHO_FICHA_MANO + ESPACIADO_MANO
 
-        self.canvas_humano.config(scrollregion=(0, 0, x_actual + 20, 170))
+        ancho_total = x_actual + margen_x
+        alto_total = ALTO_FICHA_MANO + margen_y * 2
+        self.canvas_humano.config(scrollregion=(0, 0, ancho_total, alto_total))
+        self.canvas_humano.config(height=alto_total)
 
     def renderizar_tablero(self):
         self.canvas_tablero.delete("all")
@@ -459,8 +493,9 @@ class InterfazDomino(tk.Tk):
 
         ancho_largo = 96
         ancho_corto = 48
+        alto_max = 150
         x_actual = 30
-        y_centro = 100
+        y_centro = 85
         espaciado = 6
 
         for f in self.juego.tablero:
@@ -499,14 +534,12 @@ class InterfazDomino(tk.Tk):
                 )
                 x_actual += ancho_largo + espaciado
 
-        self.canvas_tablero.config(scrollregion=(0, 0, x_actual + 40, 200))
+        self.canvas_tablero.config(scrollregion=(0, 0, x_actual + 40, alto_max))
         self.canvas_tablero.xview_moveto(1.0)
 
     def actualizar_ui(self):
-        self.lbl_agente.config(text=f"{NOMBRE_IA} · {len(self.juego.mano_agente)} fichas")
-        self.lbl_info.config(
-            text=f"{self.nombre_jugador.get()} · turno · pozo {len(self.juego.pozo)}"
-        )
+        self.lbl_agente.config(text=f"{NOMBRE_IA} · {len(self.juego.mano_agente)} Fichas")
+        self.lbl_info.config(text=self._texto_info_turno())
 
         if self.juego.tablero:
             self.lbl_extremos.config(
@@ -560,8 +593,8 @@ class InterfazDomino(tk.Tk):
 
     def robar_o_pasar_humano(self):
         if self.juego.hay_jugadas(self.juego.mano_humano):
-            messagebox.showinfo("Tienes jugadas",
-                                "Aún tienes fichas válidas. Debes jugar.")
+            messagebox.showinfo("Tienes jugadas válidas",
+                                "Todavía tienes fichas que puedes jugar. Debes jugar una.")
             return
 
         robo = False
@@ -648,13 +681,14 @@ class InterfazDomino(tk.Tk):
 
         card = tk.Frame(contenedor, bg=COLOR_PANEL,
                         highlightbackground="#E4DDD1", highlightthickness=1)
-        card.place(relx=0.5, rely=0.5, anchor=tk.CENTER, width=460, height=320)
+        card.place(relx=0.5, rely=0.5, anchor=tk.CENTER, width=480, height=340)
 
         if tranque:
             p = sum(f.peso for f in self.juego.mano_humano)
             pa = sum(f.peso for f in self.juego.mano_agente)
             titulo = "Empate por tranque"
-            subtitulo = f"{self.nombre_jugador.get()} · {p} pts        {NOMBRE_IA} · {pa} pts"
+            subtitulo = (f"{self.nombre_jugador.get()} · {p} puntos        "
+                         f"{NOMBRE_IA} · {pa} puntos")
             color = COLOR_ALERTA
         else:
             if ganador == "Humano":
@@ -663,11 +697,11 @@ class InterfazDomino(tk.Tk):
                 color = COLOR_ACENTO
             else:
                 titulo = f"Victoria de {NOMBRE_IA}"
-                subtitulo = "La IA ha ganado esta partida."
+                subtitulo = "La inteligencia artificial ha ganado esta partida."
                 color = COLOR_ALERTA
 
         tk.Label(card, text=titulo, font=("Segoe UI", 22, "bold"),
-                 bg=COLOR_PANEL, fg=color).pack(pady=(50, 10))
+                 bg=COLOR_PANEL, fg=color).pack(pady=(55, 10))
         tk.Label(card, text=subtitulo, font=("Segoe UI", 12),
                  bg=COLOR_PANEL, fg=COLOR_SUAVE).pack(pady=(0, 30))
 
