@@ -4,6 +4,7 @@ import random
 from PIL import Image, ImageTk
 import os
 
+#Ayúda a que el programa sepa qué y cómo funciona una ficha
 class Ficha:
     def __init__(self, v1, v2):
         self.v1 = v1
@@ -17,12 +18,12 @@ class Ficha:
     def coincide(self, extremo):
         return self.v1 == extremo or self.v2 == extremo
 
-class JuegoDomino:
+class JuegoDomino: #Define las reglas del juego
     def __init__(self):
         self.reiniciar()
 
     def reiniciar(self):
-        fichas = [Ficha(i, j) for i in range(7) for j in range(i, 7)]
+        fichas = [Ficha(i, j) for i in range(7) for j in range(i, 7)] #reparte 7 fichas a cada uno y guarda el resto en un pozo
         random.shuffle(fichas)
         
         self.mano_humano = fichas[0:7]
@@ -40,12 +41,11 @@ class JuegoDomino:
             
         validas = []
         for f in mano:
-            # Lógica corregida: Evaluaciones independientes y sin bloqueos
             if f.v1 == self.extremo_izq or f.v2 == self.extremo_izq:
                 validas.append((f, 'izq'))
             if f.v1 == self.extremo_der or f.v2 == self.extremo_der:
                 validas.append((f, 'der'))
-        return validas
+        return validas  #valida cada jugada para saber si un extremo puede conectarse con otro en el juego
 
     def jugar_ficha(self, ficha, lado, jugador_es_humano):
         mano = self.mano_humano if jugador_es_humano else self.mano_agente
@@ -76,9 +76,9 @@ class JuegoDomino:
             else:
                 self.mano_agente.append(ficha)
             return True
-        return False
+        return False #cuando no hay fichas válidas para tirar, se roba del pozo
 
-class InterfazDomino(tk.Tk):
+class InterfazDomino(tk.Tk): #Interfaz gráfica del juego
     def __init__(self):
         super().__init__()
         self.title("Dominó IA - Arquitectura de Tres Capas")
@@ -95,7 +95,7 @@ class InterfazDomino(tk.Tk):
     def pantalla_inicio(self):
         self.limpiar_ventana()
         tk.Label(self, text="Inteligencia Artificial en Dominó", font=("Arial", 28, "bold"), bg="#FFFFFF", fg="#333333").pack(pady=60)
-        tk.Label(self, text="Selecciona la estrategia de Gem:", font=("Arial", 16), bg="#FFFFFF", fg="#555555").pack(pady=10)
+        tk.Label(self, text="Selecciona la estrategia de la IA:", font=("Arial", 16), bg="#FFFFFF", fg="#555555").pack(pady=10)
         
         estilo_rb = {"bg": "#FFFFFF", "fg": "#333333", "font": ("Arial", 14), "selectcolor": "#F0F0F0"}
         tk.Radiobutton(self, text="Fácil (Aleatorio)", variable=self.dificultad, value="Fácil", **estilo_rb).pack()
@@ -115,7 +115,7 @@ class InterfazDomino(tk.Tk):
         self.frame_agente = tk.Frame(self, bg="#FFFFFF")
         self.frame_agente.pack(side=tk.TOP, fill=tk.X, pady=10)
         
-        self.lbl_agente = tk.Label(self.frame_agente, text="Gem (IA) - Fichas", font=("Arial", 12, "bold"), bg="#FFFFFF", fg="#333333")
+        self.lbl_agente = tk.Label(self.frame_agente, text="IA - Fichas", font=("Arial", 12, "bold"), bg="#FFFFFF", fg="#333333")
         self.lbl_agente.pack()
         self.canvas_agente = tk.Canvas(self.frame_agente, bg="#FFFFFF", height=100, highlightthickness=0)
         self.canvas_agente.pack(fill=tk.X)
@@ -145,7 +145,7 @@ class InterfazDomino(tk.Tk):
         self.frame_tablero = tk.Frame(self, bg="#FFFFFF")
         self.frame_tablero.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=10)
         
-        # --- NUEVO HUD DE EXTREMOS ---
+        
         self.lbl_extremos = tk.Label(self.frame_tablero, text="Mesa vacía. Juega tu primera ficha.", font=("Arial", 14, "bold"), bg="#FFFFFF", fg="#4CAF50")
         self.lbl_extremos.pack(side=tk.TOP, pady=5)
 
@@ -220,12 +220,12 @@ class InterfazDomino(tk.Tk):
                     self.canvas_humano.create_rectangle(x_actual-4, 15-4, x_actual+ancho_ficha+4, 15+alto_ficha+4, outline="#2196F3", width=4)
                 
                 item = self.canvas_humano.create_image(x_actual, 15, image=img_tk, anchor=tk.NW)
-                self.canvas_humano.tag_bind(item, '<Button-1>', lambda event, idx=i: self.seleccionar_ficha(idx))
+                self.canvas_humano.tag_bind(item, '<Button-1>', lambda _, idx=i: self.seleccionar_ficha(idx))
                 
-            except Exception as e:
+            except Exception:
                 rect = self.canvas_humano.create_rectangle(x_actual, 15, x_actual+ancho_ficha, 15+alto_ficha, fill="#EEEEEE", outline="#FF5722")
                 self.canvas_humano.create_text(x_actual+(ancho_ficha/2), 15+(alto_ficha/2), text=str(f), font=("Arial", 12, "bold"), fill="#333333")
-                self.canvas_humano.tag_bind(rect, '<Button-1>', lambda event, idx=i: self.seleccionar_ficha(idx))
+                self.canvas_humano.tag_bind(rect, '<Button-1>', lambda _, idx=i: self.seleccionar_ficha(idx))
                 
             x_actual += ancho_ficha + espaciado
 
@@ -238,7 +238,7 @@ class InterfazDomino(tk.Tk):
         if not self.juego.tablero:
             return
 
-        # --- DIMENSIONES REDUCIDAS PARA EL TABLERO ---
+        
         ancho_largo = 80
         ancho_corto = 40
         
@@ -290,10 +290,9 @@ class InterfazDomino(tk.Tk):
     def actualizar_ui(self):
         self.lbl_agente.config(text=f"Gem (IA) - {len(self.juego.mano_agente)} fichas")
         self.lbl_info.config(text=f"Dificultad: {self.dificultad.get()} | Tu turno, Kurai | Pozo: {len(self.juego.pozo)}")
-        
-        # Actualización del HUD de Extremos
+    
         if self.juego.tablero:
-            self.lbl_extremos.config(text=f"👈 Izquierda: [ {self.juego.extremo_izq} ]      |      Derecha: [ {self.juego.extremo_der} ] 👉", fg="#2196F3")
+            self.lbl_extremos.config(text=f"<- Izquierda: [ {self.juego.extremo_izq} ]      |      Derecha: [ {self.juego.extremo_der} ] ->", fg="#2196F3")
         else:
             self.lbl_extremos.config(text="Mesa vacía. Juega tu primera ficha.", fg="#4CAF50")
         
@@ -344,7 +343,7 @@ class InterfazDomino(tk.Tk):
             self.lbl_info.config(text="Turno de Gem...", fg="#FF5722")
             self.after(1200, self.turno_agente)
 
-    def turno_agente(self):
+    def turno_agente(self): #Código de la IA
         validas = self.juego.jugadas_validas(self.juego.mano_agente)
         while not validas and self.juego.pozo:
             self.juego.robar(jugador_es_humano=False)
@@ -406,7 +405,7 @@ class InterfazDomino(tk.Tk):
                 mensaje = "¡Felicidades Kurai!\nHas derrotado a la IA."
                 color = "#4CAF50"
             else:
-                mensaje = "¡Victoria para Gem (IA)!"
+                mensaje = "¡Victoria para la IA!"
                 color = "#F44336"
 
         tk.Label(self, text=mensaje, font=("Arial", 24, "bold"), bg="#FFFFFF", fg=color).pack(pady=100)
